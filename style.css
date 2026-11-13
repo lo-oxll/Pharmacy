@@ -1,0 +1,59 @@
+:root{
+  --teal:#0f766e; --teal-d:#115e59; --bg:#f4f7f7; --card:#fff;
+  --line:#dbe5e5; --txt:#1c2b2b; --mut:#5b6e6e; --warn:#b45309; --red:#b91c1c;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic",Arial,sans-serif;background:var(--bg);color:var(--txt);line-height:1.7}
+.top{background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;padding:18px 16px;text-align:center}
+.top h1{margin:0;font-size:1.5rem}
+.top p{margin:4px 0 0;opacity:.9;font-size:.95rem}
+.disclaimer{background:#fff7ed;color:var(--warn);border-bottom:1px solid #fed7aa;padding:8px 14px;font-size:.85rem;text-align:center}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.tab{flex:1 0 auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer;color:var(--mut)}
+.tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+main{max-width:900px;margin:0 auto;padding:14px}
+.panel{display:none}
+.panel.active{display:block}
+h2{font-size:1.1rem;margin:20px 0 6px;color:var(--teal-d)}
+.hint{color:var(--mut);font-size:.88rem;margin:0 0 10px}
+.searchbox{display:flex;gap:8px}
+input[type=search],input[type=text],input:not([type]),textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+input:focus,textarea:focus{outline:2px solid var(--teal);border-color:transparent}
+button{font:inherit;border:1px solid var(--line);background:#fff;padding:10px 16px;border-radius:10px;cursor:pointer}
+button.primary{background:var(--teal);color:#fff;border-color:var(--teal);white-space:nowrap}
+button.danger{color:var(--red);border-color:#fecaca}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ocr{margin:12px 0;padding:12px;background:#fff;border:1px dashed var(--teal);border-radius:12px}
+.file-btn{display:inline-block;background:#e6f4f2;color:var(--teal-d);padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+.small{font-size:.85rem;margin-inline-start:10px;color:var(--mut)}
+.ocr-box{margin-top:10px}
+.ocr-box textarea{margin:6px 0;font-family:Consolas,monospace}
+.status{font-size:.88rem;color:var(--mut);margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{background:#e6f4f2;color:var(--teal-d);border:0;border-radius:999px;padding:5px 12px;font-size:.88rem;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.card h3{margin:0 0 2px;font-size:1.15rem;color:var(--teal-d)}
+.card .en{color:var(--mut);direction:ltr;text-align:right;font-size:.9rem}
+.tag{display:inline-block;background:#e6f4f2;color:var(--teal-d);border-radius:6px;padding:1px 8px;font-size:.8rem;margin:4px 0}
+.sec{margin-top:10px}
+.sec b{display:block;color:var(--teal-d);font-size:.92rem}
+.sec ul{margin:2px 0;padding-inline-start:20px}
+.warn{background:#fff7ed;border-inline-start:4px solid var(--warn);padding:6px 10px;border-radius:6px;margin-top:10px;font-size:.9rem}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:4px}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right}
+th{background:#f0f6f6}
+td.ltr{direction:ltr;text-align:left}
+.rank{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.rank:last-child{border-bottom:0}
+.rank .n{flex:0 0 32px;height:32px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.rank .src{color:var(--mut);font-size:.82rem}
+.live h3{color:#1d4ed8}
+.live .card{border-color:#bfdbfe}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--teal-d);font-weight:600}
+.lbl{white-space:pre-wrap;direction:ltr;text-align:left;font-size:.85rem;background:#f8fafc;border-radius:8px;padding:8px;margin-top:4px}
+.form{display:grid;gap:8px}
+.empty{color:var(--mut);padding:18px;text-align:center}
+.plain{padding-inline-start:18px}
+@media(min-width:700px){.form{grid-template-columns:1fr 1fr}.form textarea,.form button{grid-column:1/-1}}

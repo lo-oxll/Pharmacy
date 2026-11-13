@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>النظام الصيدلي</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <h1>💊 النظام الصيدلي</h1>
+  <p>ابحث بالاسم أو الصورة أو المرض</p>
+</header>
+
+<div class="disclaimer">
+  ⚠️ معلومات تعليمية مساعدة فقط، وليست تشخيصاً أو وصفة. راجع الطبيب أو الصيدلي قبل استعمال أي دواء.
+</div>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="drug">بحث دواء</button>
+  <button class="tab" data-tab="disease">بحث بمرض</button>
+  <button class="tab" data-tab="add">إضافة / استيراد</button>
+  <button class="tab" data-tab="about">المصادر</button>
+</nav>
+
+<main>
+
+  <!-- بحث دواء -->
+  <section id="tab-drug" class="panel active">
+    <div class="searchbox">
+      <input id="drugInput" type="search" placeholder="اكتب اسم الدواء (عربي أو إنجليزي)…" autocomplete="off">
+      <button id="drugBtn" class="primary">بحث</button>
+    </div>
+
+    <div class="ocr">
+      <label class="file-btn">
+        📷 تصوير / رفع صورة العلبة
+        <input id="imgInput" type="file" accept="image/*" capture="environment" hidden>
+      </label>
+      <label class="small"><input type="checkbox" id="ocrArabic"> قراءة العربية أيضاً (أبطأ)</label>
+      <div id="ocrStatus" class="status"></div>
+      <div id="ocrBox" class="ocr-box" hidden>
+        <label for="ocrText">النص المقروء من الصورة (عدّله إن لزم):</label>
+        <textarea id="ocrText" rows="3" dir="ltr"></textarea>
+        <div id="ocrChips" class="chips"></div>
+        <button id="ocrSearch" class="primary">ابحث بهذا النص</button>
+      </div>
+    </div>
+
+    <div id="suggest" class="chips"></div>
+    <div id="drugResults"></div>
+    <div id="liveResults"></div>
+  </section>
+
+  <!-- بحث بمرض -->
+  <section id="tab-disease" class="panel">
+    <div class="searchbox">
+      <input id="disInput" type="search" placeholder="اكتب المرض أو العَرَض (مثل: ضغط، سكر، حموضة)…" autocomplete="off">
+      <button id="disBtn" class="primary">بحث</button>
+    </div>
+    <div id="disChips" class="chips"></div>
+    <div id="disResults"></div>
+  </section>
+
+  <!-- إضافة -->
+  <section id="tab-add" class="panel">
+    <h2>إضافة دواء أو شركة (أدوية السوق العراقي)</h2>
+    <p class="hint">تحفظ البيانات في متصفحك على هذا الجهاز. إذا كانت المادة الفعالة موجودة في النظام يُضاف الاسم التجاري والشركة تحتها تلقائياً.</p>
+    <form id="addForm" class="form">
+      <input name="brand" placeholder="الاسم التجاري *" required>
+      <input name="generic" placeholder="المادة الفعالة (مثل: Paracetamol) *" required>
+      <input name="company" placeholder="الشركة المصنّعة *" required>
+      <input name="strength" placeholder="التركيز (مثل: 500 ملغ)">
+      <input name="cls" placeholder="الفئة العلاجية (للأدوية الجديدة)">
+      <input name="purpose" placeholder="الغرض العلاجي (للأدوية الجديدة)">
+      <textarea name="side" rows="2" placeholder="الأعراض الجانبية (للأدوية الجديدة)"></textarea>
+      <textarea name="usage" rows="2" placeholder="طريقة الاستعمال (للأدوية الجديدة)"></textarea>
+      <textarea name="timing" rows="2" placeholder="أوقات الاستعمال (للأدوية الجديدة)"></textarea>
+      <button class="primary" type="submit">حفظ</button>
+    </form>
+
+    <h2>استيراد من ملف CSV</h2>
+    <p class="hint">الأعمدة بالترتيب: brand,generic,company,strength (بدون عنوان أو مع عنوان).</p>
+    <input type="file" id="csvInput" accept=".csv,text/csv">
+    <div class="row">
+      <button id="exportBtn">تصدير بياناتي</button>
+      <button id="clearBtn" class="danger">مسح بياناتي المضافة</button>
+    </div>
+    <div id="addStatus" class="status"></div>
+  </section>
+
+  <!-- المصادر -->
+  <section id="tab-about" class="panel">
+    <h2>مصادر الترتيب والبيانات</h2>
+    <ul class="plain">
+      <li><b>الترتيب الرسمي:</b> قائمة الأدوية الأساسية لمنظمة الصحة العالمية (WHO EML)، تصنيف AWaRe للمضادات الحيوية، وإرشادات تخصصية دولية (ADA، ESC/ESH، GINA، ARIA، ACC/AHA…).</li>
+      <li><b>البحث العالمي المباشر:</b> openFDA (ملصقات الأدوية في أمريكا) و RxNorm (المكتبة الوطنية الأمريكية للطب) وتتطلب الإنترنت.</li>
+      <li><b>القاعدة المحلية:</b> عدد محدود من الأدوية الشائعة بالعربية، وتتوسع بإضافتك أدوية الشركات العراقية.</li>
+      <li><b>الحدود:</b> لا توجد قاعدة واحدة تضم كل أدوية العالم؛ وأسماء الشركات تختلف من بلد إلى آخر، فتحقق من العلبة والنشرة الرسمية.</li>
+    </ul>
+  </section>
+
+</main>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
