@@ -287,7 +287,7 @@ const CONDITIONS = [
     id: 'fever-pain', ar: 'حمى / ألم خفيف إلى متوسط', en: 'fever, mild pain',
     keys: ['حمى', 'حرارة', 'سخونة', 'ألم', 'صداع', 'fever', 'pain', 'headache'],
     ranking: [
-      { drug: 'paracetamol', src: 'WHO EML + سلّم WHO لتسكين الألم', note: 'الخيار الأول والأكثر أماناً' },
+      { drug: 'paracetamol', src: 'WHO EML + WHO analgesic ladder', note: 'الخيار الأول والأكثر أماناً' },
       { drug: 'ibuprofen', src: 'WHO EML', note: 'بديل أو إضافة عند الالتهاب؛ مع الأكل' }
     ]
   },

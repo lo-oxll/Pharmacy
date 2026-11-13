@@ -6,9 +6,10 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').toLowerCase()
-  .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+  .replace(/[ً-ٰٟـ]/g, '')
   .replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
   .replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+const isEn = () => LANG === 'en';
 
 /* ---------- البيانات المحلية + المضافة ---------- */
 const KEY = 'pharma_custom_v1';
@@ -23,7 +24,7 @@ function getDrugs() {
     if (!d) {
       d = {
         id: 'custom-' + g.replace(/\s/g, '-'), ar: e.generic, en: e.generic,
-        cls: e.cls || 'غير محدد', purpose: e.purpose || '—', strengths: [],
+        cls: e.cls || '—', purpose: e.purpose || '—', strengths: [],
         side: e.side ? e.side.split(/\n|،|,/).map(s => s.trim()).filter(Boolean) : [],
         usage: e.usage || '—', timing: e.timing || '—', warn: '', brands: [], custom: true
       };
@@ -35,41 +36,78 @@ function getDrugs() {
   return drugs;
 }
 
+/* ---------- الترجمة المحلية للبيانات ---------- */
+function loc(d) {
+  const e = EN.drugs[d.id];
+  if (!isEn()) return { name: d.ar, sub: d.en, cls: d.cls, purpose: d.purpose, strengths: d.strengths, side: d.side, usage: d.usage, timing: d.timing, warn: d.warn };
+  if (!e) return { name: d.en, sub: d.ar, cls: d.cls, purpose: d.purpose, strengths: d.strengths, side: d.side, usage: d.usage, timing: d.timing, warn: d.warn };
+  const base = DRUGS.find(x => x.id === d.id);
+  const extra = base ? d.strengths.slice(base.strengths.length) : [];
+  return { name: d.en, sub: d.ar, ...e, strengths: [...e.strengths, ...extra] };
+}
+const coName = c => isEn()
+  ? String(c).replace('(موضعي)', '(topical)').replace('(J&J سابقاً)', '(formerly J&J)').replace('(حسب البلد)', '(varies by country)')
+  : c;
+const cName = c => isEn() ? EN.conds[c.id].name : c.ar;
+const cNote = c => isEn() ? EN.conds[c.id].note : c.note;
+const rNote = (c, i) => isEn() ? EN.conds[c.id].notes[i] : c.ranking[i].note;
+const sfText = (id, k) => isEn() ? EN.safety[id][k] : SAFETY[id][k][1];
+
 /* ---------- التبويبات ---------- */
 $$('.tab').forEach(b => b.addEventListener('click', () => {
   $$('.tab').forEach(x => x.classList.toggle('active', x === b));
   $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + b.dataset.tab));
 }));
 
-/* ---------- عرض بطاقة دواء ---------- */
+/* ---------- السلامة والمراجع ---------- */
+const SF_KEYS = ['preg', 'lact', 'renal', 'hepatic'];
+function sfRow(level, key, text) {
+  return `<div class="sf sf-${level}"><span class="sf-t">${t('sf_' + key)} · ${t('lv_' + level)}</span>${esc(text)}</div>`;
+}
+function safetyBlock(d) {
+  const s = SAFETY[d.id];
+  if (!s) return `<div class="sec"><b>${t('sec_safety')}</b><div class="hint">${t('no_sf')}</div></div>`;
+  return `<div class="sec"><b>${t('sec_safety')}</b>${SF_KEYS.map(k => sfRow(s[k][0], k, sfText(d.id, k))).join('')}</div>`;
+}
+function refText(d) {
+  if (d.custom) return t('ref_user');
+  if (isEn()) return EN.refFull[d.id] || (EN.refDefault + (EN.refExtra[d.id] ? '; ' + EN.refExtra[d.id] : ''));
+  return REFS[d.id] || REF_DEFAULT;
+}
+const refBlock = d => `<div class="refline">${t('ref_lbl')} ${esc(refText(d))}<br>${t('date_lbl', ENTRY_DATE)} · ${t('not_reviewed')}</div>`;
+
+/* ---------- بطاقة دواء ---------- */
 function ranksFor(drugId) {
   const out = [];
   for (const c of CONDITIONS) {
     const i = c.ranking.findIndex(r => r.drug === drugId);
-    if (i >= 0) out.push({ cond: c.ar, rank: i + 1, src: c.ranking[i].src });
+    if (i >= 0) out.push({ cond: cName(c), rank: i + 1, src: c.ranking[i].src });
   }
   return out;
 }
 
 function drugCard(d) {
+  const v = loc(d);
   const brands = d.brands.length
-    ? `<div class="tbl-wrap"><table><thead><tr><th>الاسم التجاري</th><th>الشركة</th><th>التركيز</th></tr></thead><tbody>${
-      d.brands.map(b => `<tr><td class="ltr">${esc(b.n)}${b.mine ? ' ⭐' : ''}</td><td>${esc(b.c)}</td><td>${esc(b.s || '—')}</td></tr>`).join('')
+    ? `<div class="tbl-wrap"><table><thead><tr><th>${t('th_brand')}</th><th>${t('th_company')}</th><th>${t('th_strength')}</th></tr></thead><tbody>${
+      d.brands.map(b => `<tr><td class="ltr">${esc(b.n)}${b.mine ? ' ⭐' : ''}</td><td>${esc(coName(b.c))}</td><td>${esc(b.s || '—')}</td></tr>`).join('')
     }</tbody></table></div>`
-    : '<div class="hint">لا توجد شركات مسجلة محلياً. أضفها من تبويب "إضافة" أو راجع النتائج العالمية أدناه.</div>';
+    : `<div class="hint">${t('no_brands')}</div>`;
   const ranks = ranksFor(d.id);
   return `<article class="card">
-    <h3>${esc(d.ar)}</h3>
-    <div class="en">${esc(d.en)}</div>
-    <span class="tag">${esc(d.cls)}</span>
-    <div class="sec"><b>الغرض العلاجي</b>${esc(d.purpose)}</div>
-    <div class="sec"><b>الشركات والأسماء التجارية</b>${brands}</div>
-    ${d.strengths.length ? `<div class="sec"><b>التراكيز والأشكال</b>${d.strengths.map(esc).join(' • ')}</div>` : ''}
-    <div class="sec"><b>الأعراض الجانبية</b>${d.side.length ? `<ul>${d.side.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : '—'}</div>
-    <div class="sec"><b>طريقة الاستعمال</b>${esc(d.usage)}</div>
-    <div class="sec"><b>أوقات الاستعمال</b>${esc(d.timing)}</div>
-    ${d.warn ? `<div class="warn"><b>تحذيرات:</b> ${esc(d.warn)}</div>` : ''}
-    ${ranks.length ? `<div class="sec"><b>موقعه في التوصيات الرسمية</b><ul>${ranks.map(r => `<li>${esc(r.cond)}: الترتيب ${r.rank} <span class="hint">(${esc(r.src)})</span></li>`).join('')}</ul></div>` : ''}
+    <h3>${esc(v.name)}</h3>
+    <div class="en">${esc(v.sub)}</div>
+    <span class="tag">${esc(v.cls)}</span>
+    <div class="sec"><b>${t('sec_purpose')}</b>${esc(v.purpose)}</div>
+    <div class="sec"><b>${t('sec_brands')}</b>${brands}</div>
+    ${v.strengths.length ? `<div class="sec"><b>${t('sec_strengths')}</b>${v.strengths.map(esc).join(' • ')}</div>` : ''}
+    <div class="sec"><b>${t('sec_side')}</b>${v.side.length ? `<ul>${v.side.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : '—'}</div>
+    <div class="sec"><b>${t('sec_usage')}</b>${esc(v.usage)}</div>
+    <div class="sec"><b>${t('sec_timing')}</b>${esc(v.timing)}</div>
+    ${v.warn ? `<div class="warn"><b>${t('warn_lbl')}</b> ${esc(v.warn)}</div>` : ''}
+    ${ranks.length ? `<div class="sec"><b>${t('sec_rank')}</b><ul>${ranks.map(r => `<li>${t('rank_item', esc(r.cond), r.rank, esc(r.src))}</li>`).join('')}</ul></div>` : ''}
+    ${safetyBlock(d)}
+    ${refBlock(d)}
   </article>`;
 }
 
@@ -77,41 +115,46 @@ function drugCard(d) {
 function matchDrugs(q) {
   const nq = norm(q);
   if (!nq) return [];
-  const tokens = nq.split(' ').filter(t => t.length >= 3);
+  const tokens = nq.split(' ').filter(x => x.length >= 3);
   const scored = [];
   for (const d of getDrugs()) {
     const names = [d.ar, d.en, d.id, ...d.brands.map(b => b.n)].map(norm);
-    const hay = [...names, norm(d.cls), norm(d.purpose)].join(' | ');
+    const hay = [...names, norm(d.cls), norm(d.purpose), norm(EN.drugs[d.id]?.cls), norm(EN.drugs[d.id]?.purpose)].join(' | ');
     let s = 0;
     if (names.some(n => n === nq)) s += 100;
     if (names.some(n => n.includes(nq))) s += 60;
     if (hay.includes(nq)) s += 30;
-    for (const t of tokens) if (names.some(n => n.includes(t))) s += 15; else if (hay.includes(t)) s += 5;
+    for (const x of tokens) if (names.some(n => n.includes(x))) s += 15; else if (hay.includes(x)) s += 5;
     if (s > 0) scored.push({ d, s });
   }
   return scored.sort((a, b) => b.s - a.s).map(x => x.d);
 }
 
-function runDrugSearch(q) {
-  q = q.trim();
-  $('#suggest').innerHTML = '';
-  $('#liveResults').innerHTML = '';
+let lastQ = '';
+function renderDrugLocal() {
   const box = $('#drugResults');
-  if (!q) { box.innerHTML = ''; return; }
-  const found = matchDrugs(q);
+  if (!lastQ) { box.innerHTML = ''; return; }
+  const found = matchDrugs(lastQ);
   let html = '';
   if (found.length) {
-    html += `<h2>النتائج المحلية (${found.length})</h2>` + found.slice(0, 6).map(drugCard).join('');
+    html += `<h2>${t('local_results', found.length)}</h2>` + found.slice(0, 6).map(drugCard).join('');
     const first = found[0];
     const alts = getDrugs().filter(x => x.cls === first.cls && !found.includes(x));
     if (alts.length) {
-      html += `<h2>بدائل بنفس الفئة العلاجية</h2><div class="chips">${alts.map(a => `<button class="chip" data-q="${esc(a.en)}">${esc(a.ar)}</button>`).join('')}</div>`;
+      html += `<h2>${t('alts')}</h2><div class="chips">${alts.map(a => `<button class="chip" data-q="${esc(a.en)}">${esc(loc(a).name)}</button>`).join('')}</div>`;
     }
   } else {
-    html += '<div class="empty">لم يوجد في القاعدة المحلية. جارٍ البحث في القواعد العالمية…</div>';
+    html += `<div class="empty">${t('not_found_local')}</div>`;
   }
   box.innerHTML = html;
-  liveSearch(q);
+}
+
+function runDrugSearch(q) {
+  lastQ = q.trim();
+  sugg = []; renderSugg();
+  live = null; $('#liveResults').innerHTML = '';
+  renderDrugLocal();
+  if (lastQ) liveSearch(lastQ);
 }
 
 $('#drugBtn').addEventListener('click', () => runDrugSearch($('#drugInput').value));
@@ -122,7 +165,7 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- البحث العالمي: RxNorm + openFDA ---------- */
-const trunc = (t, n = 700) => { t = (t || '').toString().replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+const trunc = (x, n = 700) => { x = (x || '').toString().replace(/\s+/g, ' ').trim(); return x.length > n ? x.slice(0, n) + '…' : x; };
 const firstOf = v => Array.isArray(v) ? v[0] : v;
 
 async function fj(url) {
@@ -147,28 +190,57 @@ async function fdaQuery(name, limit) {
   return fj(`https://api.fda.gov/drug/label.json?search=${q.replace(/ /g, '%20')}&limit=${limit}`);
 }
 
+let sugg = [], live = null;
+function renderSugg() {
+  $('#suggest').innerHTML = sugg.length
+    ? `<span class="small">${t('did_you_mean')}</span>` + sugg.map(s => `<button class="chip" data-q="${esc(s)}">${esc(s)}</button>`).join('')
+    : '';
+}
+
+function renderLive() {
+  const out = $('#liveResults');
+  if (!live) return;
+  const { generic, rows, L } = live;
+  const sec = (title, txt) => txt ? `<details><summary>${title}</summary><div class="lbl">${esc(trunc(Array.isArray(txt) ? txt.join(' ') : txt, 1500))}</div></details>` : '';
+  out.innerHTML = `<div class="live"><h2>${t('live_title', esc(generic))}</h2>
+    <div class="card">
+      <div class="sec"><b>${t('live_brands', rows.length)}</b>
+        <input id="liveFilter" type="search" placeholder="${esc(t('filter_ph'))}">
+        <div class="tbl-wrap"><table id="liveTbl"><thead><tr><th>${t('th_brand')}</th><th>${t('th_company')}</th><th>${t('th_active')}</th><th>${t('th_route')}</th></tr></thead><tbody>${
+          rows.slice(0, 120).map(r => `<tr><td class="ltr">${esc(r.b)}</td><td class="ltr">${esc(r.m)}</td><td class="ltr">${esc(r.strength)}</td><td class="ltr">${esc(r.route)}</td></tr>`).join('')
+        }</tbody></table></div>
+      </div>
+      ${sec(t('d_ind'), L.indications_and_usage)}
+      ${sec(t('d_dos'), L.dosage_and_administration)}
+      ${sec(t('d_adv'), L.adverse_reactions)}
+      ${sec(t('d_warn'), L.warnings || L.warnings_and_cautions)}
+      ${sec(t('d_inter'), L.drug_interactions)}
+      ${sec(t('d_preg'), L.pregnancy || L.teratogenic_effects)}
+      ${sec(t('d_lact'), L.nursing_mothers || L.lactation)}
+      ${sec(t('d_spec'), L.use_in_specific_populations)}
+      <div class="hint">${t('fda_note')}</div>
+    </div></div>`;
+  $('#liveFilter').addEventListener('input', e => {
+    const v = norm(e.target.value);
+    $$('#liveTbl tbody tr').forEach(tr => tr.style.display = norm(tr.textContent).includes(v) ? '' : 'none');
+  });
+}
+
 async function liveSearch(term) {
   const out = $('#liveResults');
-  out.innerHTML = '<div class="status">جارٍ البحث في openFDA و RxNorm…</div>';
+  out.innerHTML = `<div class="status">${t('searching_live')}</div>`;
   try {
     let data;
     try { data = await fdaQuery(term, 10); } catch { data = null; }
 
-    // لم نجد؟ جرب تصحيح الكتابة عبر RxNorm (يفيد مع أخطاء OCR)
     if (!data?.results?.length) {
-      const sug = await rxSuggest(term);
-      $('#suggest').innerHTML = sug.length
-        ? `<span class="small">هل تقصد؟</span>` + sug.map(s => `<button class="chip" data-q="${esc(s)}">${esc(s)}</button>`).join('')
-        : '';
-      for (const s of sug) { try { data = await fdaQuery(s.split(' ')[0], 10); if (data?.results?.length) break; } catch { } }
+      const s = await rxSuggest(term);
+      sugg = s; renderSugg();
+      for (const x of s) { try { data = await fdaQuery(x.split(' ')[0], 10); if (data?.results?.length) break; } catch { } }
     }
-    if (!data?.results?.length) {
-      out.innerHTML = '<div class="empty">لا نتائج عالمية لهذا الاسم. جرّب الاسم العلمي بالإنجليزية.</div>';
-      return;
-    }
+    if (!data?.results?.length) { out.innerHTML = `<div class="empty">${t('no_live')}</div>`; return; }
 
     const generic = firstOf(data.results[0].openfda?.generic_name) || term;
-    // كل الشركات التي تنتج نفس المادة الفعالة
     let all = data.results;
     try { all = (await fdaQuery(generic, 100)).results || all; } catch { }
 
@@ -181,29 +253,10 @@ async function liveSearch(term) {
       if (seen.has(k)) continue; seen.add(k);
       rows.push({ b, m, strength, route });
     }
-    const L = data.results[0];
-    const sec = (title, txt) => txt ? `<details><summary>${title}</summary><div class="lbl">${esc(trunc(Array.isArray(txt) ? txt.join(' ') : txt, 1500))}</div></details>` : '';
-
-    out.innerHTML = `<div class="live"><h2>🌍 نتائج عالمية: ${esc(generic)}</h2>
-      <div class="card">
-        <div class="sec"><b>الشركات والأسماء التجارية (${rows.length}) — openFDA</b>
-          <input id="liveFilter" type="search" placeholder="تصفية بالشركة أو الاسم…">
-          <div class="tbl-wrap"><table id="liveTbl"><thead><tr><th>الاسم التجاري</th><th>الشركة</th><th>المادة الفعالة / التركيز</th><th>الطريق</th></tr></thead><tbody>${
-            rows.slice(0, 120).map(r => `<tr><td class="ltr">${esc(r.b)}</td><td class="ltr">${esc(r.m)}</td><td class="ltr">${esc(r.strength)}</td><td class="ltr">${esc(r.route)}</td></tr>`).join('')
-          }</tbody></table></div>
-        </div>
-        ${sec('دواعي الاستعمال (الملصق الرسمي)', L.indications_and_usage)}
-        ${sec('الجرعة وطريقة الاستعمال', L.dosage_and_administration)}
-        ${sec('الأعراض الجانبية', L.adverse_reactions)}
-        ${sec('التحذيرات', L.warnings || L.warnings_and_cautions)}
-        <div class="hint">النص الرسمي بالإنجليزية من ملصق إدارة الغذاء والدواء الأمريكية (FDA). قد تختلف المنتجات والشركات في العراق.</div>
-      </div></div>`;
-    $('#liveFilter').addEventListener('input', e => {
-      const v = norm(e.target.value);
-      $$('#liveTbl tbody tr').forEach(tr => tr.style.display = norm(tr.textContent).includes(v) ? '' : 'none');
-    });
-  } catch (err) {
-    out.innerHTML = '<div class="empty">تعذر الاتصال بالقواعد العالمية (تحقق من الإنترنت). النتائج المحلية تعمل بدون اتصال.</div>';
+    live = { generic, rows, L: data.results[0] };
+    renderLive();
+  } catch {
+    out.innerHTML = `<div class="empty">${t('live_fail')}</div>`;
   }
 }
 
@@ -224,7 +277,7 @@ $('#imgInput').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
   const st = $('#ocrStatus');
-  st.textContent = 'جارٍ تحميل محرك القراءة…';
+  st.textContent = t('ocr_loading');
   try {
     await loadTesseract();
     const lang = $('#ocrArabic').checked ? 'eng+ara' : 'eng';
@@ -236,28 +289,28 @@ $('#imgInput').addEventListener('change', async e => {
     $('#ocrBox').hidden = false;
     const words = [...new Set((text.match(/[A-Za-z][A-Za-z-]{3,}/g) || []).map(w => w.toLowerCase()))].slice(0, 12);
     $('#ocrChips').innerHTML = words.map(w => `<button class="chip" data-q="${esc(w)}">${esc(w)}</button>`).join('');
-    st.textContent = text ? 'تمت القراءة. عدّل النص أو اضغط على كلمة لتبحث بها.' : 'لم يُقرأ نص. جرّب صورة أوضح للاسم.';
+    st.textContent = text ? t('ocr_done') : t('ocr_none');
   } catch {
-    st.textContent = 'تعذر تشغيل القراءة (يلزم اتصال بالإنترنت لتحميل المحرك). اكتب الاسم يدوياً.';
+    st.textContent = t('ocr_fail');
   }
 });
 
 $('#ocrSearch').addEventListener('click', () => {
-  const t = $('#ocrText').value.replace(/\s+/g, ' ').trim();
-  $('#drugInput').value = t.split(' ').slice(0, 3).join(' ');
-  runDrugSearch(t.length > 40 ? t.split(' ')[0] : t);
+  const x = $('#ocrText').value.replace(/\s+/g, ' ').trim();
+  $('#drugInput').value = x.split(' ').slice(0, 3).join(' ');
+  runDrugSearch(x.length > 40 ? x.split(' ')[0] : x);
 });
 
 /* ---------- البحث بالمرض ---------- */
 function matchConditions(q) {
   const nq = norm(q);
   if (!nq) return [];
-  const tokens = nq.split(' ').filter(t => t.length >= 2);
+  const tokens = nq.split(' ').filter(x => x.length >= 2);
   return CONDITIONS.map(c => {
-    const hay = norm([c.ar, c.en, ...c.keys].join(' '));
+    const hay = norm([c.ar, c.en, EN.conds[c.id].name, ...c.keys].join(' '));
     let s = 0;
     if (hay.includes(nq)) s += 50;
-    for (const t of tokens) if (hay.includes(t)) s += 10;
+    for (const x of tokens) if (hay.includes(x)) s += 10;
     return { c, s };
   }).filter(x => x.s > 0).sort((a, b) => b.s - a.s).map(x => x.c);
 }
@@ -267,32 +320,38 @@ function conditionCard(c) {
   const items = c.ranking.map((r, i) => {
     const d = drugs.find(x => x.id === r.drug);
     if (!d) return '';
-    const brands = d.brands.slice(0, 5).map(b => b.n).join('، ');
+    const v = loc(d);
+    const brands = d.brands.slice(0, 5).map(b => b.n).join(isEn() ? ', ' : '، ');
     return `<div class="rank"><div class="n">${i + 1}</div><div>
-      <b>${esc(d.ar)}</b> <span class="en">${esc(d.en)}</span>
-      <div>${esc(r.note)}</div>
-      <div class="src">المرجع: ${esc(r.src)}</div>
-      ${brands ? `<div class="src">أمثلة تجارية: ${esc(brands)}</div>` : ''}
-      <button class="chip" data-q="${esc(d.en)}" onclick="document.querySelector('[data-tab=drug]').click()">تفاصيل الدواء والشركات</button>
+      <b>${esc(v.name)}</b> <span class="en">${esc(v.sub)}</span>
+      <div>${esc(rNote(c, i))}</div>
+      <div class="src">${t('dis_ref', esc(r.src))}</div>
+      ${brands ? `<div class="src">${t('dis_ex', esc(brands))}</div>` : ''}
+      <button class="chip" data-q="${esc(d.en)}" onclick="document.querySelector('[data-tab=drug]').click()">${t('dis_details')}</button>
     </div></div>`;
   }).join('');
-  return `<article class="card"><h3>${esc(c.ar)}</h3>${items}${c.note ? `<div class="warn">${esc(c.note)}</div>` : ''}</article>`;
+  const note = cNote(c);
+  return `<article class="card"><h3>${esc(cName(c))}</h3>${items}${note ? `<div class="warn">${esc(note)}</div>` : ''}<div class="refline">${t('cond_date', ENTRY_DATE)}</div></article>`;
 }
 
-function runDisSearch(q) {
+let lastDis = '';
+function renderDis() {
   const box = $('#disResults');
-  const found = matchConditions(q);
-  box.innerHTML = q.trim()
-    ? (found.length ? found.map(conditionCard).join('') : '<div class="empty">لم يوجد هذا المرض في القاعدة. جرّب كلمة أخرى أو اختر من القائمة.</div>')
-    : '';
+  if (!lastDis.trim()) { box.innerHTML = ''; return; }
+  const found = matchConditions(lastDis);
+  box.innerHTML = found.length ? found.map(conditionCard).join('') : `<div class="empty">${t('dis_nf')}</div>`;
 }
+function runDisSearch(q) { lastDis = q; renderDis(); }
 $('#disBtn').addEventListener('click', () => runDisSearch($('#disInput').value));
 $('#disInput').addEventListener('keydown', e => { if (e.key === 'Enter') runDisSearch(e.target.value); });
-$('#disChips').innerHTML = CONDITIONS.map(c => `<button class="chip" data-dis="${esc(c.ar)}">${esc(c.ar)}</button>`).join('');
+function buildDisChips() {
+  $('#disChips').innerHTML = CONDITIONS.map(c => `<button class="chip" data-dis="${esc(cName(c))}">${esc(cName(c))}</button>`).join('');
+}
 $('#disChips').addEventListener('click', e => {
   const b = e.target.closest('[data-dis]');
   if (b) { $('#disInput').value = b.dataset.dis; runDisSearch(b.dataset.dis); }
 });
+buildDisChips();
 
 /* ---------- الإضافة والاستيراد ---------- */
 const addStatus = m => { $('#addStatus').textContent = m; };
@@ -302,12 +361,12 @@ $('#addForm').addEventListener('submit', e => {
   const f = Object.fromEntries(new FormData(e.target));
   const arr = loadCustom(); arr.push(f); saveCustom(arr);
   e.target.reset();
-  addStatus('تم الحفظ ✔ ابحث عن الدواء لترى الإضافة.');
+  addStatus(t('saved'));
 });
 
 $('#csvInput').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
-  const lines = (await file.text()).replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = (await file.text()).replace(/^﻿/, '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const arr = loadCustom(); let n = 0;
   for (const l of lines) {
     const p = l.split(/[,;\t]/).map(x => x.trim().replace(/^"|"$/g, ''));
@@ -315,18 +374,30 @@ $('#csvInput').addEventListener('change', async e => {
     arr.push({ brand: p[0], generic: p[1], company: p[2], strength: p[3] || '' }); n++;
   }
   saveCustom(arr);
-  addStatus(`تم استيراد ${n} سجل.`);
+  addStatus(t('imported', n));
 });
 
 $('#exportBtn').addEventListener('click', () => {
   const rows = ['brand,generic,company,strength', ...loadCustom().map(e => [e.brand, e.generic, e.company, e.strength || ''].map(x => `"${String(x).replace(/"/g, '""')}"`).join(','))];
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8' }));
+  a.href = URL.createObjectURL(new Blob(['﻿' + rows.join('\n')], { type: 'text/csv;charset=utf-8' }));
   a.download = 'my-drugs.csv'; a.click();
 });
 
 $('#clearBtn').addEventListener('click', () => {
-  if (confirm('مسح كل ما أضفته؟ لا يمكن التراجع.')) { saveCustom([]); addStatus('تم المسح.'); }
+  if (confirm(t('confirm_clear'))) { saveCustom([]); addStatus(t('cleared')); }
 });
 
+/* ---------- تبديل اللغة ---------- */
+document.addEventListener('langchange', () => {
+  buildDisChips();
+  renderDrugLocal();
+  renderSugg();
+  renderLive();
+  renderDis();
+  // نصوص الحالة الثابتة
+  if ($('#ocrStatus').textContent) $('#ocrStatus').textContent = '';
+});
+
+window.PharmaApp = { getDrugs, esc, norm, loc, sfText, SF_KEYS };
 })();

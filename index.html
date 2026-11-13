@@ -9,19 +9,19 @@
 <body>
 
 <header class="top">
-  <h1>💊 النظام الصيدلي</h1>
-  <p>ابحث بالاسم أو الصورة أو المرض</p>
+  <button id="langBtn" class="lang-btn" type="button" data-i="lang_btn"></button>
+  <h1 data-i="title"></h1>
+  <p data-i="sub"></p>
 </header>
 
-<div class="disclaimer">
-  ⚠️ معلومات تعليمية مساعدة فقط، وليست تشخيصاً أو وصفة. راجع الطبيب أو الصيدلي قبل استعمال أي دواء.
-</div>
+<div class="disclaimer" data-i="disclaimer"></div>
 
 <nav class="tabs">
-  <button class="tab active" data-tab="drug">بحث دواء</button>
-  <button class="tab" data-tab="disease">بحث بمرض</button>
-  <button class="tab" data-tab="add">إضافة / استيراد</button>
-  <button class="tab" data-tab="about">المصادر</button>
+  <button class="tab active" data-tab="drug" data-i="tab_drug"></button>
+  <button class="tab" data-tab="disease" data-i="tab_dis"></button>
+  <button class="tab" data-tab="interact" data-i="tab_int"></button>
+  <button class="tab" data-tab="add" data-i="tab_add"></button>
+  <button class="tab" data-tab="about" data-i="tab_about"></button>
 </nav>
 
 <main>
@@ -29,22 +29,22 @@
   <!-- بحث دواء -->
   <section id="tab-drug" class="panel active">
     <div class="searchbox">
-      <input id="drugInput" type="search" placeholder="اكتب اسم الدواء (عربي أو إنجليزي)…" autocomplete="off">
-      <button id="drugBtn" class="primary">بحث</button>
+      <input id="drugInput" type="search" data-ph="ph_drug" autocomplete="off">
+      <button id="drugBtn" class="primary" data-i="search"></button>
     </div>
 
     <div class="ocr">
       <label class="file-btn">
-        📷 تصوير / رفع صورة العلبة
+        <span data-i="ocr_btn"></span>
         <input id="imgInput" type="file" accept="image/*" capture="environment" hidden>
       </label>
-      <label class="small"><input type="checkbox" id="ocrArabic"> قراءة العربية أيضاً (أبطأ)</label>
+      <label class="small"><input type="checkbox" id="ocrArabic"> <span data-i="ocr_ar"></span></label>
       <div id="ocrStatus" class="status"></div>
       <div id="ocrBox" class="ocr-box" hidden>
-        <label for="ocrText">النص المقروء من الصورة (عدّله إن لزم):</label>
+        <label for="ocrText" data-i="ocr_label"></label>
         <textarea id="ocrText" rows="3" dir="ltr"></textarea>
         <div id="ocrChips" class="chips"></div>
-        <button id="ocrSearch" class="primary">ابحث بهذا النص</button>
+        <button id="ocrSearch" class="primary" data-i="ocr_search"></button>
       </div>
     </div>
 
@@ -56,54 +56,83 @@
   <!-- بحث بمرض -->
   <section id="tab-disease" class="panel">
     <div class="searchbox">
-      <input id="disInput" type="search" placeholder="اكتب المرض أو العَرَض (مثل: ضغط، سكر، حموضة)…" autocomplete="off">
-      <button id="disBtn" class="primary">بحث</button>
+      <input id="disInput" type="search" data-ph="ph_dis" autocomplete="off">
+      <button id="disBtn" class="primary" data-i="search"></button>
     </div>
     <div id="disChips" class="chips"></div>
     <div id="disResults"></div>
   </section>
 
+  <!-- فحص التفاعلات -->
+  <section id="tab-interact" class="panel">
+    <h2 data-i="int_title"></h2>
+    <p class="hint" data-i="int_hint"></p>
+    <div class="searchbox">
+      <input id="intInput" list="drugList" data-ph="ph_int" autocomplete="off">
+      <datalist id="drugList"></datalist>
+      <button id="intAdd" class="primary" data-i="add"></button>
+    </div>
+    <div id="intStatus" class="status"></div>
+    <div id="intChips" class="chips"></div>
+    <div class="profile">
+      <b data-i="patient"></b>
+      <label><input type="checkbox" id="pf-preg"> <span data-i="p_preg"></span></label>
+      <label><input type="checkbox" id="pf-lact"> <span data-i="p_lact"></span></label>
+      <label><input type="checkbox" id="pf-renal"> <span data-i="p_renal"></span></label>
+      <label><input type="checkbox" id="pf-hepatic"> <span data-i="p_hepatic"></span></label>
+    </div>
+    <div id="intResults"></div>
+  </section>
+
   <!-- إضافة -->
   <section id="tab-add" class="panel">
-    <h2>إضافة دواء أو شركة (أدوية السوق العراقي)</h2>
-    <p class="hint">تحفظ البيانات في متصفحك على هذا الجهاز. إذا كانت المادة الفعالة موجودة في النظام يُضاف الاسم التجاري والشركة تحتها تلقائياً.</p>
+    <h2 data-i="add_title"></h2>
+    <p class="hint" data-i="add_hint"></p>
     <form id="addForm" class="form">
-      <input name="brand" placeholder="الاسم التجاري *" required>
-      <input name="generic" placeholder="المادة الفعالة (مثل: Paracetamol) *" required>
-      <input name="company" placeholder="الشركة المصنّعة *" required>
-      <input name="strength" placeholder="التركيز (مثل: 500 ملغ)">
-      <input name="cls" placeholder="الفئة العلاجية (للأدوية الجديدة)">
-      <input name="purpose" placeholder="الغرض العلاجي (للأدوية الجديدة)">
-      <textarea name="side" rows="2" placeholder="الأعراض الجانبية (للأدوية الجديدة)"></textarea>
-      <textarea name="usage" rows="2" placeholder="طريقة الاستعمال (للأدوية الجديدة)"></textarea>
-      <textarea name="timing" rows="2" placeholder="أوقات الاستعمال (للأدوية الجديدة)"></textarea>
-      <button class="primary" type="submit">حفظ</button>
+      <input name="brand" data-ph="ph_brand" required>
+      <input name="generic" data-ph="ph_generic" required>
+      <input name="company" data-ph="ph_company" required>
+      <input name="strength" data-ph="ph_strength">
+      <input name="cls" data-ph="ph_cls">
+      <input name="purpose" data-ph="ph_purpose">
+      <textarea name="side" rows="2" data-ph="ph_side"></textarea>
+      <textarea name="usage" rows="2" data-ph="ph_usage"></textarea>
+      <textarea name="timing" rows="2" data-ph="ph_timing"></textarea>
+      <button class="primary" type="submit" data-i="save"></button>
     </form>
 
-    <h2>استيراد من ملف CSV</h2>
-    <p class="hint">الأعمدة بالترتيب: brand,generic,company,strength (بدون عنوان أو مع عنوان).</p>
+    <h2 data-i="csv_title"></h2>
+    <p class="hint" data-i="csv_hint"></p>
     <input type="file" id="csvInput" accept=".csv,text/csv">
     <div class="row">
-      <button id="exportBtn">تصدير بياناتي</button>
-      <button id="clearBtn" class="danger">مسح بياناتي المضافة</button>
+      <button id="exportBtn" data-i="export"></button>
+      <button id="clearBtn" class="danger" data-i="clear"></button>
     </div>
     <div id="addStatus" class="status"></div>
   </section>
 
   <!-- المصادر -->
   <section id="tab-about" class="panel">
-    <h2>مصادر الترتيب والبيانات</h2>
+    <h2 data-i="about_title"></h2>
     <ul class="plain">
-      <li><b>الترتيب الرسمي:</b> قائمة الأدوية الأساسية لمنظمة الصحة العالمية (WHO EML)، تصنيف AWaRe للمضادات الحيوية، وإرشادات تخصصية دولية (ADA، ESC/ESH، GINA، ARIA، ACC/AHA…).</li>
-      <li><b>البحث العالمي المباشر:</b> openFDA (ملصقات الأدوية في أمريكا) و RxNorm (المكتبة الوطنية الأمريكية للطب) وتتطلب الإنترنت.</li>
-      <li><b>القاعدة المحلية:</b> عدد محدود من الأدوية الشائعة بالعربية، وتتوسع بإضافتك أدوية الشركات العراقية.</li>
-      <li><b>الحدود:</b> لا توجد قاعدة واحدة تضم كل أدوية العالم؛ وأسماء الشركات تختلف من بلد إلى آخر، فتحقق من العلبة والنشرة الرسمية.</li>
+      <li data-ih="about1"></li>
+      <li data-ih="about2"></li>
+      <li data-ih="about3"></li>
+      <li data-ih="about4"></li>
     </ul>
   </section>
 
 </main>
 
+<script src="i18n.js"></script>
 <script src="data.js"></script>
+<script src="en.js"></script>
+<script src="safety.js"></script>
 <script src="app.js"></script>
+<script src="interact.js"></script>
+<script>
+  applyStatic();
+  document.getElementById('langBtn').addEventListener('click', () => setLang(LANG === 'ar' ? 'en' : 'ar'));
+</script>
 </body>
 </html>
